@@ -89,8 +89,10 @@ def analyze(pair):
 print("BOT INICIADO")
 
 while True:
+    print("Analizando mercado...")
 
     for pair in pairs:
+        print("Analizando:", pair)
 
         try:
 
