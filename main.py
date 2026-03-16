@@ -100,17 +100,27 @@ while True:
 
             if signal:
 
-                message=f"""
-🚨 SEÑAL BINARIA
+                # alerta previa
+                aviso = f"""
+                ⚠️ POSIBLE SEÑAL
 
-Par: {pair}
-Dirección: {signal}
-Expiración: 3 minutos
-Entrada: próxima vela
-"""
+                Par: {pair}
+                Prepararse para próxima vela
+                """
+                send_signal(aviso)
+
+                time.sleep(20)
+
+                message=f"""
+                🚨 SEÑAL BINARIA
+
+                Par: {pair}
+                Dirección: {signal}
+                Expiración: 3 minutos
+                Entrada: próxima vela
+                """
 
                 send_signal(message)
-
         except:
 
             pass
