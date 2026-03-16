@@ -7,7 +7,13 @@ import os
 TOKEN = os.getenv("TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 
-pairs = ["EURUSDT","GBPUSDT","AUDUSDT","USDJPY"]
+pairs = [
+"EURUSD","GBPUSD","AUDUSD","NZDUSD","USDJPY","USDCAD","USDCHF",
+"EURJPY","GBPJPY","EURGBP",
+
+"BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT",
+"ADAUSDT","DOGEUSDT","AVAXUSDT","LINKUSDT","MATICUSDT"
+]
 
 # enviar mensaje telegram
 def send_signal(message):
