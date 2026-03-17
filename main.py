@@ -8,7 +8,7 @@ CHAT_ID = os.getenv("CHAT_ID")
 
 pairs = [
     "BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT",
-    "ADAUSDT","DOGEUSDT","AVAXUSDT","MATICUSDT","DOTUSDT"
+    "ADAUSDT","DOGEUSDT","AVAXUSDT","DOTUSDT","LTCUSDT"
 ]
 
 # enviar mensaje telegram
@@ -17,13 +17,19 @@ def send_signal(message):
     data = {"chat_id": CHAT_ID, "text": message}
     requests.post(url, data=data)
 
-# obtener datos
+# obtener datos (CORREGIDO)
 def get_data(pair, interval):
     url = f"https://api.binance.com/api/v3/klines?symbol={pair}&interval={interval}&limit=100"
     data = requests.get(url).json()
-    df = pd.DataFrame(data)
 
+    # evitar errores
+    if not data or isinstance(data, dict):
+        print(f"Error datos en {pair}")
+        return None
+
+    df = pd.DataFrame(data)
     df["close"] = df[4].astype(float)
+
     return df
 
 # EMA
@@ -38,10 +44,13 @@ def rsi(df, period=14):
     rs = gain / loss
     return 100 - (100 / (1 + rs))
 
-# analizar tendencia (1H y 15M)
+# tendencia (1H + 15M)
 def trend(pair):
     df1h = get_data(pair, "1h")
     df15 = get_data(pair, "15m")
+
+    if df1h is None or df15 is None:
+        return None
 
     df1h["ema50"] = ema(df1h["close"], 50)
     df15["ema50"] = ema(df15["close"], 50)
@@ -56,9 +65,12 @@ def trend(pair):
     else:
         return None
 
-# entrada en 1 minuto
+# entrada (1M)
 def entry(pair, direction):
     df = get_data(pair, "1m")
+
+    if df is None:
+        return False
 
     df["ema9"] = ema(df["close"], 9)
     df["ema21"] = ema(df["close"], 21)
@@ -67,11 +79,11 @@ def entry(pair, direction):
     last = df.iloc[-1]
 
     if direction == "CALL":
-        if last["ema9"] > last["ema21"] and last["rsi"] < 55:
+        if last["ema9"] > last["ema21"] and last["rsi"] < 60:
             return True
 
     if direction == "PUT":
-        if last["ema9"] < last["ema21"] and last["rsi"] > 45:
+        if last["ema9"] < last["ema21"] and last["rsi"] > 40:
             return True
 
     return False
@@ -87,12 +99,12 @@ while True:
             direction = trend(pair)
 
             if direction:
-                # AVISO PREVIO
+                # aviso previo
                 send_signal(f"⚠️ PREPARAR\nPar: {pair}\nPosible: {direction}")
 
                 time.sleep(10)
 
-                # CONFIRMACIÓN
+                # confirmación entrada
                 if entry(pair, direction):
                     send_signal(f"""
 🚨 ENTRA YA
