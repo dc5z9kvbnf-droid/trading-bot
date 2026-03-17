@@ -6,35 +6,33 @@ import os
 TOKEN = os.getenv("TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 
-pairs = [
-    "BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT",
-    "ADAUSDT","DOGEUSDT","AVAXUSDT","DOTUSDT","LTCUSDT"
-]
+pairs = ["BTCUSDT","ETHUSDT","SOLUSDT","XRPUSDT","ADAUSDT"]
 
-# enviar mensaje telegram
-def send_signal(message):
+# telegram
+def send_signal(msg):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    data = {"chat_id": CHAT_ID, "text": message}
-    requests.post(url, data=data)
+    requests.post(url, data={"chat_id": CHAT_ID, "text": msg})
 
-# obtener datos (CORREGIDO)
-def get_data(pair, interval):
-    url = f"https://api.binance.com/api/v3/klines?symbol={pair}&interval={interval}&limit=100"
+# datos BYBIT
+def get_data(pair, interval="1"):
+    url = f"https://api.bybit.com/v5/market/kline?category=linear&symbol={pair}&interval={interval}&limit=100"
     data = requests.get(url).json()
 
-    # evitar errores
-    if not data or isinstance(data, dict):
-        print(f"Error datos en {pair}")
+    if "result" not in data:
+        print("Error datos", pair)
         return None
 
-    df = pd.DataFrame(data)
-    df["close"] = df[4].astype(float)
+    df = pd.DataFrame(data["result"]["list"])
 
+    if df.empty:
+        return None
+
+    df["close"] = df[4].astype(float)
     return df
 
 # EMA
-def ema(series, period):
-    return series.ewm(span=period, adjust=False).mean()
+def ema(series, n):
+    return series.ewm(span=n).mean()
 
 # RSI
 def rsi(df, period=14):
@@ -44,30 +42,24 @@ def rsi(df, period=14):
     rs = gain / loss
     return 100 - (100 / (1 + rs))
 
-# tendencia (1H + 15M)
+# tendencia (15m)
 def trend(pair):
-    df1h = get_data(pair, "1h")
-    df15 = get_data(pair, "15m")
+    df = get_data(pair, "15")
 
-    if df1h is None or df15 is None:
+    if df is None:
         return None
 
-    df1h["ema50"] = ema(df1h["close"], 50)
-    df15["ema50"] = ema(df15["close"], 50)
+    df["ema50"] = ema(df["close"], 50)
+    last = df.iloc[-1]
 
-    t1h = df1h["close"].iloc[-1] > df1h["ema50"].iloc[-1]
-    t15 = df15["close"].iloc[-1] > df15["ema50"].iloc[-1]
-
-    if t1h and t15:
+    if last["close"] > last["ema50"]:
         return "CALL"
-    elif not t1h and not t15:
-        return "PUT"
     else:
-        return None
+        return "PUT"
 
-# entrada (1M)
+# entrada (1m)
 def entry(pair, direction):
-    df = get_data(pair, "1m")
+    df = get_data(pair, "1")
 
     if df is None:
         return False
@@ -79,38 +71,33 @@ def entry(pair, direction):
     last = df.iloc[-1]
 
     if direction == "CALL":
-        if last["ema9"] > last["ema21"] and last["rsi"] < 60:
-            return True
+        return last["ema9"] > last["ema21"] and last["rsi"] < 60
 
     if direction == "PUT":
-        if last["ema9"] < last["ema21"] and last["rsi"] > 40:
-            return True
+        return last["ema9"] < last["ema21"] and last["rsi"] > 40
 
     return False
 
-print("BOT PRO ACTIVO")
-send_signal("🤖 BOT PRO ACTIVO")
+print("BOT ACTIVO")
+send_signal("🤖 BOT ACTIVO EN RAILWAY")
 
 while True:
-    print("Analizando mercado...")
+    print("Analizando...")
 
     for pair in pairs:
         try:
-            direction = trend(pair)
+            dir = trend(pair)
 
-            if direction:
-                # aviso previo
-                send_signal(f"⚠️ PREPARAR\nPar: {pair}\nPosible: {direction}")
+            if dir:
+                send_signal(f"⚠️ PREPARAR {pair} {dir}")
+                time.sleep(5)
 
-                time.sleep(10)
-
-                # confirmación entrada
-                if entry(pair, direction):
+                if entry(pair, dir):
                     send_signal(f"""
 🚨 ENTRA YA
 
 Par: {pair}
-Dirección: {direction}
+Dirección: {dir}
 Entrada: próxima vela
 Expiración: 3 minutos
 """)
