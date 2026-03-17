@@ -8,13 +8,13 @@ TOKEN = os.getenv("TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 
 pairs = [
-"EURUSD","GBPUSD","AUDUSD","NZDUSD","USDJPY","USDCAD","USDCHF",
-"EURJPY","GBPJPY","EURGBP",
-
-"BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT",
-"ADAUSDT","DOGEUSDT","AVAXUSDT","LINKUSDT","MATICUSDT"
+    "BTCUSDT",
+    "ETHUSDT",
+    "SOLUSDT",
+    "BNBUSDT",
+    "XRPUSDT",
+    "ADAUSDT"
 ]
-
 # enviar mensaje telegram
 def send_signal(message):
 
@@ -93,6 +93,7 @@ def analyze(pair):
     return None
 
 print("BOT INICIADO")
+send_signal("PRUEBA BOT")
 
 while True:
     print("Analizando mercado...")
